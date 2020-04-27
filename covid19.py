@@ -62,6 +62,7 @@ boxBorderStyle = {
 url_confirmed = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv'
 url_deaths = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv'
 url_recovered = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv'
+url_states='https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports_us/04-26-2020.csv'
 
 # Data can also be saved locally and read from local drive
 # url_confirmed = 'time_series_covid19_confirmed_global.csv'
@@ -71,6 +72,7 @@ url_recovered = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/maste
 df_confirmed = pd.read_csv(url_confirmed)
 df_deaths = pd.read_csv(url_deaths)
 df_recovered = pd.read_csv(url_recovered)
+df_states = pd.read_csv(url_states)
 
 ##############################################################################################################################
 # Moving Singapore to the first row in the datatable (You can choose any country of interest to be display on the first row)
@@ -80,7 +82,7 @@ def df_move1st_sg(df_t):
 
     #Moving Singapore to the first row in the datatable
     df_t["new"] = range(1,len(df_t)+1)
-    df_t.loc[df_t[df_t['Country/Region'] == 'Singapore'].index.values,'new'] = 0
+    df_t.loc[df_t[df_t['Country/Region'] == 'US'].index.values,'new'] = 0
     df_t = df_t.sort_values("new").drop('new', axis=1)
     return df_t
 
@@ -321,6 +323,11 @@ noToDisplay = 8
 confirm_cases = []
 for i in range(noToDisplay):
     confirm_cases.append(high_cases(df_confirmed_sorted_total.iloc[i,0],df_confirmed_sorted_total.iloc[i,1],df_confirmed_sorted_total.iloc[i,2]))
+
+print(confirm_cases)
+us_stats = []
+for i in range(noToDisplay):
+    us_stats.append(high_cases(df_states.iloc[i,0],df_states.iloc[i,5],df_states.iloc[i,6]))
 
 deaths_cases = []
 for i in range(noToDisplay):
@@ -678,7 +685,7 @@ app.layout = html.Div(
                     style={"display": "none"},
                 ),
 
-                html.Div([html.Span('Dashboard: Covid-19 outbreak. (Updated once a day, based on consolidated last day total) Last Updated: ',
+                html.Div([html.Span('Dashboard: Covid-19 outbreak. Created by Nawar Khabbaz, nawar29@gmail.com Last Updated: ',
                              style={'color': colors['text'],
                              }),
                         html.Span(datatime_convert(df_confirmed.columns[-1],1) + '  00:01 (UTC).',
@@ -942,6 +949,29 @@ app.layout = html.Div(
             ],
                 className="three columns",
             ),
+            
+            html.Div([
+
+                    html.P([html.Span('US Detailed stats: ',
+                             ),
+                    html.Br(),
+                    html.Span(' + past 24hrs',
+                             style={'color': colors['confirmed_text'],
+                             'fontWeight': 'bold','fontSize': 14,})
+                    ],
+                    style={
+                        'textAlign': 'center',
+                        'color': 'rgb(200,200,200)',
+                        'fontsize':12,
+                        'backgroundColor':'#3B5998',
+                        'borderRadius': '12px',
+                        'fontSize': 17,
+                        }       
+                ),
+                html.P(us_stats),
+            ],
+                className="three columns",
+            ),
         ], className="row",
             style={
             'textAlign': 'left',
@@ -949,6 +979,8 @@ app.layout = html.Div(
             'backgroundColor': colors['background'],
                 'padding': 20
         },
+        
+            
         ),
 
         html.Div([
@@ -964,14 +996,16 @@ app.layout = html.Div(
         ),
 
         #Map, Table
+        
         html.Div(
             [
                 html.Div(
                     [
                         dcc.Graph(id='map-graph',
                                   )
-                    ], className="six columns"
+                    ], style= {'display': 'none'},className="six columns"
                 ),
+                
                 html.Div(
                     [
                         dt.DataTable(
@@ -998,7 +1032,7 @@ app.layout = html.Div(
                             style_data={
                                 'whiteSpace': 'normal',
                                 'height': 'auto',
-
+                                'padding': 10,
                             },
                             style_data_conditional=[
                                 {
@@ -1052,8 +1086,95 @@ app.layout = html.Div(
 
             ], className="row",
         ),
+#Map, Table
+        html.Div(
+            [
+               
+                html.Div(
+                    [
+                        dt.DataTable(
+                            columns=[{"name": i, "id": i} for i in df_states.columns],
+                            #columns=[{"name": i, "id": i} for i in ['Province_State','Confirmed','Deaths','Recovered','People_Tested']],
+                            data=df_states.to_dict('records'),
+   
+                            
+                            fixed_rows={'headers': True, 'data': 0},
+                            style_header={
+                                'backgroundColor': 'rgb(30, 30, 30)',
+                                'fontWeight': 'bold'
+                            },
+                            style_cell={
+                                'backgroundColor': 'rgb(100, 100, 100)',
+                                'color': colors['text'],
+                                'maxWidth': 360,
+                                'fontSize':14,
+                            },
+                            style_table={
+                                'maxHeight': '350px',
+                                'overflowY': 'auto',
+                                'overflowX': 'auto'
+                            },
+                            style_data={
+                                #'whiteSpace': 'normal',
+                                'height': 'auto',
+                                #'padding': 20,
+                                'minWidth': '180px', 'width': '360px', 'maxWidth': '360px',
 
+                            },
+                            style_data_conditional=[
+                                {
+                                    'if': {'row_index': 'even'},
+                                    'backgroundColor': 'rgb(60, 60, 60)',
+                                },
+                                {
+                                    'if': {'column_id' : 'Confirmed'},
+                                    'color':colors['confirmed_text'],
+                                    'fontWeight': 'bold'
+                                },
+                                {
+                                    'if': {'column_id' : 'Deaths'},
+                                    'color':colors['deaths_text'],
+                                    'fontWeight': 'bold'
+                                },
+                                {
+                                    'if': {'column_id' : 'Recovered'},
+                                    'color':colors['recovered_text'],
+                                    'fontWeight': 'bold'
+                                },
+                                ],
+                            # style_cell_conditional=[
+                                # {'if': {'column_id': 'Province_State'},
+                                 # 'width': '36%'},
+                                # {'if': {'column_id': 'People_Tested'},
+                                 # 'width': '36%'},
+                                # {'if': {'column_id': 'Testing_Rate'},
+                                 # 'width': '36%'},
+                                # {'if': {'column_id': 'Deaths'},
+                                 # 'width': '11%'},
+                                # {'if': {'column_id': 'Recovered'},
+                                 # 'width': '16%'},
+                            # ],
+
+                            editable=False,
+                            filter_action="native",
+                            sort_action="native",
+                            sort_mode="single",
+                            row_selectable="single",
+                            row_deletable=False,
+                            selected_columns=[],
+                            selected_rows=[],
+                            page_current=0,
+                            #page_size=1000,
+                            id='datatable-us'
+                        ),
+                    ],
+                    className="six columns"
+                ),
+
+            ], className="row",
+        ),
         #Single country line graph, single country bar graph
+        
         html.Div(
             [
                 html.Div(
@@ -1093,23 +1214,20 @@ app.layout = html.Div(
                 )
             ],className="six columns"),
 
-            html.Div(
-                    [
-                        html.Hr(),
-                        html.P('Source Code Hosted on  ',
-                               style={'display': 'inline'}),
-                        html.A('Github',
-                               href='https://github.com/Unicorndy/covid19_dashboard'),
-                        html.P(' 2020.',
-                            style={'display': 'inline'}),
-                        html.P(' Click here to access ',
-                            style={'display': 'inline'}),
-                        html.A('Covid 19 Version 2.0 Web App',
-                               href='https://covid19dashboardsg.herokuapp.com/'),
-                        html.Hr(),
-                    ], className="twelve columns",
-                    style={'fontSize': 18, 'padding-top': 20}
-                )
+            # html.Div(
+                    # [
+                        # html.Hr(),
+                        # html.P('Source Code Hosted on  ',
+                               # style={'display': 'inline'}),
+                        # html.A('Github',
+                               # href='https://github.com/nawar29/covid19_dashboard'),
+                        # html.P(' 2020.',
+                            # style={'display': 'inline'}),
+
+                        # html.Hr(),
+                    # ], className="twelve columns",
+                    # style={'fontSize': 18, 'padding-top': 20}
+                # )
         ],className="row"
         ),
 
